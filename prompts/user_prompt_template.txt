@@ -1,0 +1,32 @@
+# prompts/user_prompt_template.txt
+Generate a personalized email with the following information:
+
+## PROSPECT DATA
+- first_name: $prospect_first_name
+- last_name: $prospect_last_name
+- job_title: $prospect_job_title
+- department: $prospect_department
+- tenure_months: $prospect_tenure_months
+- notable_achievement: $prospect_notable_achievement
+
+## COMPANY DATA
+- company_name: $company_name
+- industry: $company_industry
+- employee_count: $company_employee_count
+- annual_revenue: $company_annual_revenue
+- funding_stage: $company_funding_stage
+- growth_signals: $company_growth_signals
+- recent_news: $company_recent_news
+- technography: $company_technography
+- description: $company_description
+
+## SELLER DATA
+- product_name: $seller_product_name
+- category: $seller_category
+- headline_benefit: $seller_headline_benefit
+- unique_proof: $seller_unique_proof
+- marquee_case_studies: $seller_marquee_case_studies
+
+## CTA
+- ask: $cta_ask
+- calendar_link: $cta_calendar_link

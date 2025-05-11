@@ -1,0 +1,59 @@
+# src/api/routes.py
+from fastapi import APIRouter, Depends, HTTPException
+from fastapi.responses import JSONResponse
+
+from src.api.models import EmailRequest, EmailResponse, HealthResponse
+from src.services.email_generator import EmailGenerator
+from src.config import settings
+
+router = APIRouter()
+email_generator = EmailGenerator()
+
+
+@router.get("/health", response_model=HealthResponse, tags=["Health"])
+async def health_check():
+    """
+    Health check endpoint for AWS load balancer
+    """
+    return HealthResponse(version=settings.API_VERSION)
+
+
+@router.get("/health/deep", response_model=HealthResponse, tags=["Health"])
+async def deep_health_check():
+    """
+    Deep health check that verifies OpenAI connection
+    """
+    try:
+        # Test OpenAI connection by making a minimal API call
+        client = email_generator.client
+        client.models.list(limit=1)
+        return HealthResponse(version=settings.API_VERSION)
+    except Exception as e:
+        raise HTTPException(status_code=503, detail=f"Service unavailable: {str(e)}")
+
+
+
+
+# Other routes...
+
+@router.post("/generate-email", response_model=EmailResponse, tags=["Email"])
+async def generate_email(request: EmailRequest):
+    """
+    Generate a personalized email based on provided parameters
+    """
+    try:
+        # Convert Pydantic model to dict for processing
+        request_data = request.model_dump(exclude_none=False)
+
+        # Generate the email using our service
+        email_data = await email_generator.generate_email(request_data)
+
+        # Return the data as an EmailResponse
+        return EmailResponse(
+            theme_used=email_data.get("theme_used", "unknown"),
+            anchor_signal=email_data.get("anchor_signal", "unknown"),
+            subject_line=email_data.get("subject_line", ""),
+            email_body=email_data.get("email_body", "")
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Email generation failed: {str(e)}")
