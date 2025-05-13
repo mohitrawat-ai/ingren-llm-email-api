@@ -34,3 +34,4 @@ ENV/
 
 # Project specific
 prompts/development/
+deployment_package

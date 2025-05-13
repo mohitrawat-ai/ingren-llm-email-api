@@ -80,7 +80,7 @@ def test_generate_email_success(mock_generate_email, client):
         "company": {
             "company_name": "TechNova Solutions",
             "industry": "SaaS",
-            "employee_count": 250,
+            "employee_count": "250",
             "annual_revenue": "$45M",
             "funding_stage": "Series B",
             "growth_signals": "30% YoY growth, hiring burst in sales",

@@ -1,6 +1,4 @@
 name: ingren-email-api
 runtime:
   name: python
-  options:
-    virtualenv: venv
 description: Infrastructure for Ingren LLM Email API on AWS Lambda with API Gateway

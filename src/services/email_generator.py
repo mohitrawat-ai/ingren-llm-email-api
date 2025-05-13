@@ -1,8 +1,10 @@
 # src/services/email_generator.py
 import json
+from typing import Dict, Any
+
+from langsmith import traceable
+from langsmith.wrappers import wrap_openai
 from openai import OpenAI
-from string import Template
-from typing import Dict, Any, Optional, Union
 
 from src.config import settings
 from src.utils.prompt_loader import (
@@ -14,13 +16,14 @@ from src.utils.prompt_loader import (
 
 class EmailGenerator:
     def __init__(self):
-        self.client = OpenAI(api_key=settings.OPENAI_API_KEY)
+        self.client = wrap_openai(OpenAI(api_key=settings.OPENAI_API_KEY))
         self.system_prompt = load_system_prompt(settings.SYSTEM_PROMPT_PATH)
         self.user_prompt_template = load_user_prompt_template(
             settings.USER_PROMPT_TEMPLATE_PATH
         )
         self.model = settings.OPENAI_MODEL
 
+    @traceable
     async def generate_email(
             self,
             request_data: Dict[str, Any]
@@ -58,8 +61,9 @@ class EmailGenerator:
                     {"role": "system", "content": self.system_prompt},
                     {"role": "user", "content": user_prompt}
                 ],
+                store=True,
                 temperature=0.7,
-                max_tokens=1000,
+                max_tokens=1500,
                 response_format={"type": "json_object"}  # Enforce JSON response
             )
 

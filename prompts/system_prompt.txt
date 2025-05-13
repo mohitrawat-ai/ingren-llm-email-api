@@ -34,11 +34,14 @@ EMAIL BODY
   • No bullet lists or numbered lists
   • Avoid spam‑trigger words (free, guarantee, win‑win, etc.)
   • End with *one* CTA (ask + calendar link, no PS)
+  • Never have an email in 1 paragraph even if the content is not long
 STYLE
   • Friendly, confident, data‑backed
   • Emoji permitted sparingly (≤ 1) **only** if tone suits theme
+  • Use emoji only on friendly tone
   • American English
-
+SIGNATURE
+  • Use the sender's name, if provided
 ## OUTPUT FORMAT
 Return **valid JSON only**:
 {

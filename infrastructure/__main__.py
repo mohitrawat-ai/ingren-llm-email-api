@@ -70,10 +70,10 @@ cloudwatch_policy_attachment = aws.iam.RolePolicyAttachment(
 lambda_function = lambda_.Function(
     lambda_name,
     role=lambda_role.arn,
-    runtime="python3.10",
+    runtime="python3.11",
     handler="lambda_handler.handler",
     code=pulumi.AssetArchive({
-        ".": pulumi.FileArchive("./deployment_package"),
+        ".": pulumi.FileArchive("../deployment_package"),
     }),
     timeout=lambda_timeout,
     memory_size=lambda_memory,
@@ -83,6 +83,10 @@ lambda_function = lambda_.Function(
             "OPENAI_MODEL": os.environ.get("OPENAI_MODEL", "gpt-4.1-nano"),
             "SYSTEM_PROMPT_PATH": "prompts/system_prompt.txt",
             "USER_PROMPT_TEMPLATE_PATH": "prompts/user_prompt_template.txt",
+            "LANGSMITH_API_KEY": os.environ.get("LANGSMITH_API_KEY"),
+            "LANGSMITH_ENDPOINT": os.environ.get("LANGSMITH_ENDPOINT"),
+            "LANGSMITH_PROJECT": os.environ.get("LANGSMITH_PROJECT"),
+            "LANGSMITH_TRACING": os.environ.get("LANGSMITH_TRACING"),
         },
     ),
 )
@@ -195,7 +199,8 @@ options_integration_response = apigateway.IntegrationResponse(
         "method.response.header.Access-Control-Allow-Origin": "'*'",
     },
     selection_pattern="",
-    depends_on=[options_method_response],
+    opts=pulumi.ResourceOptions(depends_on=[options_method_response]),
+
 )
 
 # Set up response for POST method

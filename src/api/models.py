@@ -19,7 +19,7 @@ class ProspectData(BaseModel):
 class CompanyData(BaseModel):
     company_name: str = Field(..., description="Company name")
     industry: Optional[str] = Field(None, description="Industry sector")
-    employee_count: Optional[int] = Field(None, description="Number of employees")
+    employee_count: Optional[str] = Field(None, description="Number of employees")
     annual_revenue: Optional[str] = Field(None, description="Annual revenue")
     funding_stage: Optional[str] = Field(None, description="Funding stage (Seed/Series A/etc.)")
     growth_signals: Optional[str] = Field(None, description="Recent growth indicators")
@@ -58,6 +58,15 @@ class EmailRequest(BaseModel):
         default=None,
         description="Call to action details"
     )
+    email_tone: Optional[str] = Field(
+        default="professional",
+        description="Email tone (defaults provided if not specified)"
+    )
+
+    sender_name: Optional[str] = Field(
+        default=None,
+        description="Sender Email name to be used in signature"
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -74,7 +83,7 @@ class EmailRequest(BaseModel):
                     "company": {
                         "company_name": "TechNova Solutions",
                         "industry": "SaaS",
-                        "employee_count": 250,
+                        "employee_count": "250",
                         "annual_revenue": "$45M",
                         "funding_stage": "Series B",
                         "growth_signals": "30% YoY growth, hiring burst in sales",
@@ -85,7 +94,9 @@ class EmailRequest(BaseModel):
                     "cta": {
                         "ask": "15-min chat next Tuesday?",
                         "calendar_link": "calendly.com/ingren/demo"
-                    }
+                    },
+                    "email_tone": "professional",
+                    "sender_name": "John Doe"
                 }
             ]
         }

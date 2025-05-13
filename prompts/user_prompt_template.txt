@@ -30,3 +30,9 @@ Generate a personalized email with the following information:
 ## CTA
 - ask: $cta_ask
 - calendar_link: $cta_calendar_link
+
+## Tone
+- email_tone: $email_tone
+
+## Email Signature
+- sender_name: $sender_name

@@ -89,6 +89,10 @@ def render_user_prompt(template: Template, request_data: Dict[str, Any]) -> str:
     for key, value in cta.items():
         template_data[f"cta_{key}"] = str(value) if value is not None else ""
 
+    # Replace sender_name and email_tone from root object
+    template_data["sender_name"] = request_data.get("sender_name", "Ingren AI")
+    template_data["email_tone"] = request_data.get("email_tone", "professional")
+
     # Ensure all template variables have a value to prevent KeyError
     # This adds empty strings for any missing template variables
     for placeholder in template.template.split('$')[1:]:
