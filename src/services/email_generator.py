@@ -7,20 +7,13 @@ from langsmith.wrappers import wrap_openai
 from openai import OpenAI
 
 from src.config import settings
-from src.utils.prompt_loader import (
-    load_system_prompt,
-    load_user_prompt_template,
-    render_user_prompt
-)
+from src.utils.langsmith_prompt_manager import LangsmithPromptManager
 
 
 class EmailGenerator:
     def __init__(self):
         self.client = wrap_openai(OpenAI(api_key=settings.OPENAI_API_KEY))
-        self.system_prompt = load_system_prompt(settings.SYSTEM_PROMPT_PATH)
-        self.user_prompt_template = load_user_prompt_template(
-            settings.USER_PROMPT_TEMPLATE_PATH
-        )
+        self.prompt_manager = LangsmithPromptManager()
         self.model = settings.OPENAI_MODEL
 
     @traceable
@@ -48,18 +41,19 @@ class EmailGenerator:
             if "company" not in request_data:
                 request_data["company"] = {}
 
-            # Render the user prompt using the template and input data
-            user_prompt = render_user_prompt(
-                self.user_prompt_template,
-                request_data
+            # Render both prompts using the LangsmithPromptManager
+            prompts = self.prompt_manager.render_prompt(
+                request_data,
+                user_prompt_id=settings.LANGSMITH_USER_PROMPT_ID,
+                system_prompt_id=settings.LANGSMITH_SYSTEM_PROMPT_ID
             )
 
             # Call OpenAI API
             response = self.client.chat.completions.create(
                 model=self.model,
                 messages=[
-                    {"role": "system", "content": self.system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "system", "content": prompts["system_prompt"]},
+                    {"role": "user", "content": prompts["user_prompt"]}
                 ],
                 store=True,
                 temperature=0.7,

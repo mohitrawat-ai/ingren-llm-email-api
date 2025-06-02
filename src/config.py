@@ -11,11 +11,20 @@ class Settings(BaseSettings):
 
     # OpenAI settings
     OPENAI_API_KEY: str
-    OPENAI_MODEL: str = "gpt-4o"
+    OPENAI_MODEL: str = "gpt-4.1-nano"
+    OPENAI_MODEL_WEB_SEARCH: str = "gpt-4o-mini-search-preview"
 
     # Prompt settings
     SYSTEM_PROMPT_PATH: str = "prompts/system_prompt.txt"
     USER_PROMPT_TEMPLATE_PATH: str = "prompts/user_prompt_template.txt"
+
+    # LangSmith settings
+    LANGSMITH_API_KEY: Optional[str] = None
+    LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
+    LANGSMITH_PROJECT: str = "ingren-emails"
+    LANGSMITH_TRACING: str = "true"
+    LANGSMITH_SYSTEM_PROMPT_ID: Optional[str] = "ingren_email_system"
+    LANGSMITH_USER_PROMPT_ID: Optional[str] = "ingren_email_user"
 
     # Server settings
     HOST: str = "0.0.0.0"

@@ -32,7 +32,35 @@ async def deep_health_check():
         raise HTTPException(status_code=503, detail=f"Service unavailable: {str(e)}")
 
 
+# Add to src/api/routes.py
 
+from src.api.models import CompanyURLRequest, CompanyDescriptionResponse
+from src.services.company_info_service import CompanyInfoService
+
+# Initialize the company info service
+company_info_service = CompanyInfoService()
+
+@router.post("/company-description", response_model=CompanyDescriptionResponse, tags=["Company"])
+async def get_company_description(request: CompanyURLRequest):
+    """
+    Get company description and information based on the company URL
+    """
+    try:
+        # Call the company info service to get the description
+        company_data = await company_info_service.get_company_description(request.company_url)
+
+        # Return the data as a CompanyDescriptionResponse
+        return CompanyDescriptionResponse(
+            company_name=company_data.get("company_name", "Unknown"),
+            description=company_data.get("description", "No description available."),
+            industry=company_data.get("industry"),
+            employee_count=company_data.get("employee_count"),
+            headquarters=company_data.get("headquarters"),
+            founded_year=company_data.get("founded_year"),
+            products_services=company_data.get("products_services")
+        )
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Company information retrieval failed: {str(e)}")
 
 # Other routes...
 

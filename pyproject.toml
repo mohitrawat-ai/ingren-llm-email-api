@@ -19,6 +19,8 @@ boto3 = "^1.38.13"
 pulumi = "^3.169.0"
 pulumi-aws = "^6.80.0"
 langsmith = "^0.3.42"
+langchain-core = "^0.3.59"
+langchain-openai = "^0.3.16"
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

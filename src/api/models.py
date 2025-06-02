@@ -17,7 +17,7 @@ class ProspectData(BaseModel):
 
 
 class CompanyData(BaseModel):
-    company_name: str = Field(..., description="Company name")
+    name: str = Field(..., description="Company name")
     industry: Optional[str] = Field(None, description="Industry sector")
     employee_count: Optional[str] = Field(None, description="Number of employees")
     annual_revenue: Optional[str] = Field(None, description="Annual revenue")
@@ -81,7 +81,7 @@ class EmailRequest(BaseModel):
                         "notable_achievement": "Exceeded Q1 targets by 27%"
                     },
                     "company": {
-                        "company_name": "TechNova Solutions",
+                        "name": "TechNova Solutions",
                         "industry": "SaaS",
                         "employee_count": "250",
                         "annual_revenue": "$45M",
@@ -108,3 +108,35 @@ class EmailResponse(BaseModel):
     anchor_signal: str = Field(..., description="The key fact/pain triggering outreach")
     subject_line: str = Field(..., description="The email subject line")
     email_body: str = Field(..., description="The generated email body text")
+
+
+# Add to src/api/models.py
+
+class CompanyURLRequest(BaseModel):
+    company_url: str = Field(..., description="URL of the company website")
+
+
+class CompanyDescriptionResponse(BaseModel):
+    company_name: str = Field(..., description="Name of the company")
+    description: str = Field(..., description="Description of the company")
+    industry: Optional[str] = Field(None, description="Industry of the company")
+    employee_count: Optional[str] = Field(None, description="Approximate number of employees")
+    headquarters: Optional[str] = Field(None, description="Company headquarters location")
+    founded_year: Optional[str] = Field(None, description="Year the company was founded")
+    products_services: Optional[str] = Field(None, description="Main products or services")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "company_name": "TechNova Solutions",
+                    "description": "TechNova Solutions is a cloud-based project management software company focused on helping teams collaborate efficiently.",
+                    "industry": "SaaS",
+                    "employee_count": "250-500",
+                    "headquarters": "San Francisco, CA",
+                    "founded_year": "2015",
+                    "products_services": "Project management software, team collaboration tools, time tracking solutions"
+                }
+            ]
+        }
+    }
