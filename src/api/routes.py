@@ -2,9 +2,11 @@
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
 
-from src.api.models import EmailRequest, EmailResponse, HealthResponse
+from src.api.models import HealthResponse
 from src.services.email_generator import EmailGenerator
 from src.config import settings
+
+from ingren_api_types import EmailGenerationRequest, EmailGenerationResponse
 
 router = APIRouter()
 email_generator = EmailGenerator()
@@ -64,8 +66,8 @@ async def get_company_description(request: CompanyURLRequest):
 
 # Other routes...
 
-@router.post("/generate-email", response_model=EmailResponse, tags=["Email"])
-async def generate_email(request: EmailRequest):
+@router.post("/generate-email", response_model=EmailGenerationResponse, tags=["Email"])
+async def generate_email(request: EmailGenerationRequest) -> EmailGenerationResponse:
     """
     Generate a personalized email based on provided parameters
     """
@@ -77,11 +79,11 @@ async def generate_email(request: EmailRequest):
         email_data = await email_generator.generate_email(request_data)
 
         # Return the data as an EmailResponse
-        return EmailResponse(
-            theme_used=email_data.get("theme_used", "unknown"),
-            anchor_signal=email_data.get("anchor_signal", "unknown"),
-            subject_line=email_data.get("subject_line", ""),
-            email_body=email_data.get("email_body", "")
+        return EmailGenerationResponse(
+            theme_used=email_data["theme_used"],
+            anchor_signal=email_data["anchor_signal"],
+            subject_line=email_data["subject_line"],
+            email_body=email_data["email_body"]
         )
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Email generation failed: {str(e)}")
