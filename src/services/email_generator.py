@@ -2,6 +2,7 @@
 import json
 from typing import Dict, Any
 
+from ingren_api_types import EmailGenerationRequest
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
 from openai import OpenAI
@@ -19,27 +20,25 @@ class EmailGenerator:
     @traceable
     async def generate_email(
             self,
-            request_data: Dict[str, Any]
+            request: EmailGenerationRequest
     ) -> Dict[str, Any]:
         """
         Generate a personalized email using the LLM
 
         Args:
-            request_data: Complete request data with prospect, company, etc.
+            request: Complete request data with prospect, company, etc.
 
         Returns:
             The generated email data as a dictionary
         """
         try:
-            # Ensure request_data is a dictionary
-            if request_data is None:
-                request_data = {}
-
-            # Ensure required sections exist
-            if "prospect" not in request_data:
-                request_data["prospect"] = {}
-            if "company" not in request_data:
-                request_data["company"] = {}
+            request_data = {
+                "prospect": request.prospect.model_dump() if request.prospect else {},
+                "company": request.company.model_dump() if request.company else {},
+                "employment": request.employment.model_dump() if request.employment else {},
+                "campaign": request.campaign.model_dump() if request.campaign else {},
+                "context": request.context.model_dump() if request.context else {}
+            }
 
             # Render both prompts using the LangsmithPromptManager
             prompts = self.prompt_manager.render_prompt(

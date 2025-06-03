@@ -23,8 +23,8 @@ class Settings(BaseSettings):
     LANGSMITH_ENDPOINT: str = "https://api.smith.langchain.com"
     LANGSMITH_PROJECT: str = "ingren-emails"
     LANGSMITH_TRACING: str = "true"
-    LANGSMITH_SYSTEM_PROMPT_ID: Optional[str] = "ingren_email_system"
-    LANGSMITH_USER_PROMPT_ID: Optional[str] = "ingren_email_user"
+    LANGSMITH_SYSTEM_PROMPT_ID: Optional[str] = "ingren_email_system_v2"
+    LANGSMITH_USER_PROMPT_ID: Optional[str] = "ingren_email_user_v2"
 
     # Server settings
     HOST: str = "0.0.0.0"

@@ -1,12 +1,16 @@
 # src/api/routes.py
 from fastapi import APIRouter, Depends, HTTPException
 from fastapi.responses import JSONResponse
+import time
+from datetime import datetime
+import logging
+logger = logging.getLogger(__name__)
 
 from src.api.models import HealthResponse
 from src.services.email_generator import EmailGenerator
 from src.config import settings
 
-from ingren_api_types import EmailGenerationRequest, EmailGenerationResponse
+from ingren_api_types import EmailGenerationRequest, EmailGenerationResponse, Personalization, Attributes, GeneratedEmail
 
 router = APIRouter()
 email_generator = EmailGenerator()
@@ -65,25 +69,77 @@ async def get_company_description(request: CompanyURLRequest):
         raise HTTPException(status_code=500, detail=f"Company information retrieval failed: {str(e)}")
 
 # Other routes...
-
-@router.post("/generate-email", response_model=EmailGenerationResponse, tags=["Email"])
+@router.post("/generate-email", response_model=EmailGenerationResponse, tags=["Email Generation"])
 async def generate_email(request: EmailGenerationRequest) -> EmailGenerationResponse:
     """
     Generate a personalized email based on provided parameters
     """
+    start_time = time.time()
+
     try:
-        # Convert Pydantic model to dict for processing
-        request_data = request.model_dump(exclude_none=False)
+        # Validate minimum required data
+        if not request.prospect.name or not request.prospect.company:
+            raise HTTPException(
+                status_code=400,
+                detail={
+                    "success": False,
+                    "error": {
+                        "code": "insufficient_data",
+                        "message": "Minimum prospect data required: name, company",
+                        "fallback": {
+                            "subject": "Quick question about your team",
+                            "body": "Hi there,\n\nI hope this email finds you well...\n\nBest regards,\n[Your Name]",
+                            "wordCount": 12
+                        }
+                    }
+                }
+            )
 
-        # Generate the email using our service
-        email_data = await email_generator.generate_email(request_data)
+        # Convert request to format expected by email generator
+        email_data = await email_generator.generate_email(request)
 
-        # Return the data as an EmailResponse
+        # Calculate processing time
+        processing_time_ms = int((time.time() - start_time) * 1000)
+
+        # Count words in email body
+        word_count = len(email_data["email_body"].split())
+
+        # Calculate email score (simple heuristic for now)
+        # TODO : Add logic to calculate email score, using LLM as a Judge
+        email_score = 50
+
         return EmailGenerationResponse(
-            theme_used=email_data["theme_used"],
-            anchor_signal=email_data["anchor_signal"],
-            subject_line=email_data["subject_line"],
-            email_body=email_data["email_body"]
+            success=True,
+            email=GeneratedEmail(
+                subject=email_data["subject_line"],
+                body=email_data["email_body"],
+                wordCount=word_count
+            ),
+            personalization=Personalization(
+                elementsUsed=email_data.get("personalization_elements", []),
+                primaryPersonalization=email_data.get("anchor_signal", "unknown"),
+                confidence=email_data.get("personalization_confidence", 0.5)   # Default confidence score
+            ),
+            attributes=Attributes(
+                generatedAt=datetime.now().isoformat() + "Z",
+                processingTimeMs=processing_time_ms,
+                emailScore=email_score
+            )
         )
+
+    except HTTPException:
+        # Re-raise HTTP exceptions as-is
+        raise
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Email generation failed: {str(e)}")
+        logger.error(f"Email generation error: {str(e)}")
+
+        raise HTTPException(
+            status_code=500,
+            detail={
+                "success": False,
+                "error": {
+                    "code": "llm_error",
+                    "message": "Email generation service temporarily unavailable"
+                }
+            }
+        )
