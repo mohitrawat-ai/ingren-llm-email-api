@@ -19,7 +19,7 @@ class ProspectData(BaseModel):
 class CompanyData(BaseModel):
     name: str = Field(..., description="Company name")
     industry: Optional[str] = Field(None, description="Industry sector")
-    employee_count: Optional[str] = Field(None, description="Number of employees")
+    employee_count: Optional[int] = Field(None, description="Number of employees")
     annual_revenue: Optional[str] = Field(None, description="Annual revenue")
     funding_stage: Optional[str] = Field(None, description="Funding stage (Seed/Series A/etc.)")
     growth_signals: Optional[str] = Field(None, description="Recent growth indicators")
