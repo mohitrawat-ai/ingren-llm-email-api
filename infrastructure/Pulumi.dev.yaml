@@ -3,3 +3,4 @@ config:
   ingren-email-api:environment: dev
   ingren-email-api:lambda_memory: 512
   ingren-email-api:lambda_timeout: 15
+  ingren-email-api:current_branch: wip-prompt-v2

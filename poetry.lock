@@ -1211,6 +1211,24 @@ semver = ">=2.8.1"
 typing-extensions = {version = ">=4.11,<5", markers = "python_version < \"3.11\""}
 
 [[package]]
+name = "pulumi-command"
+version = "1.1.0"
+description = "The Pulumi Command Provider enables you to execute commands and scripts either locally or remotely as part of the Pulumi resource model."
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+files = [
+    {file = "pulumi_command-1.1.0-py3-none-any.whl", hash = "sha256:d6a62444a1a9a26ded354b668a9cf88c0becd4faacabe4adafbc8dbb65af96c4"},
+    {file = "pulumi_command-1.1.0.tar.gz", hash = "sha256:509b2709938aacfb13717b7b537d728375cd90b409093bf24dacab17d9294a4a"},
+]
+
+[package.dependencies]
+parver = ">=0.2.1"
+pulumi = ">=3.165.0,<4.0.0"
+semver = ">=2.8.1"
+typing-extensions = {version = ">=4.11,<5", markers = "python_version < \"3.11\""}
+
+[[package]]
 name = "pycparser"
 version = "2.22"
 description = "C parser in Python"
@@ -2039,4 +2057,4 @@ cffi = ["cffi (>=1.11)"]
 [metadata]
 lock-version = "2.1"
 python-versions = "^3.10"
-content-hash = "41f42f907a8ec745ba3645b900b26c6d6bf57f2a8ecd0a2b09c203b7285c2e4f"
+content-hash = "43c0111eade4e6cf9517a95230f0b929c3c81f06d5b4225d224ad6ab89ff6ff7"
