@@ -113,43 +113,7 @@ class LangsmithPromptManager:
         # Get templates
         system_prompt = cls.get_system_prompt(system_prompt_id)
         user_prompt_template = cls.get_user_prompt_template(user_prompt_id)
-
-        # Create a flat dictionary for template substitution
-        template_data = {}
-
-        # Add prospect data (ensure it's not None)
-        prospect = request_data.get("prospect", {}) or {}
-        for key, value in prospect.items():
-            template_data[f"prospect_{key}"] = str(value) if value is not None else ""
-
-        # Add company data (ensure it's not None)
-        company = request_data.get("company", {}) or {}
-        for key, value in company.items():
-            template_data[f"company_{key}"] = str(value) if value is not None else ""
-
-        # Add seller data with defaults (ensure it's not None)
-        default_seller = {
-            "product_name": "Ingren.ai",
-            "category": "AI‑powered outbound automation",
-            "headline_benefit": "Turns 8 hrs of prospect research into 8 min",
-            "unique_proof": "87% faster research → 22% more first‑call bookings",
-            "marquee_case_studies": ""
-        }
-        seller = request_data.get("seller") or {}
-        seller_data = {**default_seller, **seller}
-        for key, value in seller_data.items():
-            template_data[f"seller_{key}"] = str(value) if value is not None else ""
-
-        # Add CTA data (ensure it's not None)
-        cta = request_data.get("cta", {}) or {}
-        for key, value in cta.items():
-            template_data[f"cta_{key}"] = str(value) if value is not None else ""
-
-        # Replace sender_name and email_tone from root object
-        template_data["sender_name"] = request_data.get("sender_name", "Ingren AI")
-        template_data["email_tone"] = request_data.get("email_tone", "professional")
-
-        user_prompt_invoked = user_prompt_template.invoke(template_data)
+        user_prompt_invoked = user_prompt_template.invoke(request_data)
 
         openai_payload = convert_prompt_to_openai_format(user_prompt_invoked)
         user_prompt = openai_payload["messages"][0]["content"]

@@ -116,8 +116,8 @@ async def generate_email(request: EmailGenerationRequest) -> EmailGenerationResp
                 wordCount=word_count
             ),
             personalization=Personalization(
-                elementsUsed=email_data.get("personalization_elements", []),
-                primaryPersonalization=email_data.get("anchor_signal", "unknown"),
+                elementsUsed=[],
+                primaryPersonalization="",
                 confidence=email_data.get("personalization_confidence", 0.5)   # Default confidence score
             ),
             attributes=Attributes(
