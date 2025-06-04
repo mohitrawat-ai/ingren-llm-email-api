@@ -138,8 +138,6 @@ lambda_function = lambda_.Function(
 # Usage
 existing_versions_output = get_existing_versions_as_outputs(lambda_function.name, branches.keys())
 
-for branch_name, version in existing_versions_output.items():
-    pulumi.export(f"raw_version_{branch_name}", version)
 
 pulumi.log.info(f"Existing versions: {existing_versions_output}")
 
