@@ -13,10 +13,12 @@ class Branch:
 
     def create_alias(self, current_branch):# For feature branches - always update alias to current $LATEST
 
-        # Use pulumi.Output conditional logic for version selection
-        function_version = pulumi.Output.all(self.current_lambda_version, self.lambda_function.version).apply(
-            lambda args: args[1] if self.name == current_branch else args[0]
-        )
+        if self.name == current_branch:
+            function_version = self.lambda_function.version
+        else:
+            # existing_versions[self.name] is an Output, that's fine!
+            function_version = self.current_lambda_version
+
         lambda_alias = lambda_.Alias(
             f"lambda-alias-{self.name}",
             function_name=self.lambda_function.name,
