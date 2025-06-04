@@ -32,13 +32,20 @@ class Branch:
         return cmd.stdout.apply(lambda v: v.strip())
 
     def create_alias(self, current_branch):# For feature branches - always update alias to current $LATEST
-        alias_name = f"{self.lambda_function.id}-{self.name}-alias"
-        current_version = Branch.get_alias_version_safe(self.lambda_function.name, alias_name)
-        function_version = current_version if self.name == current_branch else self.lambda_function.version
+        alias_name = pulumi.Output.concat(self.lambda_function.id, "-", self.name, "-alias")
+        # Get current version using the function name (which is also an Output)
+        current_version = self.lambda_function.name.apply(
+            lambda fname: Branch.get_alias_version_safe(fname, self.name)
+        )
+
+        # Use pulumi.Output conditional logic for version selection
+        function_version = pulumi.Output.all(current_version, self.lambda_function.version).apply(
+            lambda args: args[1] if self.name == current_branch else args[0]
+        )
         lambda_alias = lambda_.Alias(
-            alias_name,
+            f"lambda-alias-{self.name}",
             function_name=self.lambda_function.name,
-            function_version=function_version,  # Points to current $LATEST at creation time
+            function_version=function_version,
             name=self.name,
         )
         return lambda_alias
@@ -77,7 +84,7 @@ class Branch:
             http_method=generate_email_method.http_method,
             integration_http_method="POST",
             type="AWS_PROXY",
-            uri=pulumi.Output.concat(self.lambda_function.invoke_arn, ":", lambda_alias.name),
+            uri=pulumi.Output.concat(lambda_alias.invoke_arn),
         )
 
         # Set up CORS for the generate-email endpoint
@@ -138,7 +145,7 @@ class Branch:
             f"post-method-response-{self.name}",
             rest_api=rest_api.id,
             resource_id=generate_email_resource.id,
-            http_method="POST",
+            http_method=generate_email_method.http_method,
             status_code="200",
             response_models={
                 "application/json": "Empty",
@@ -174,3 +181,4 @@ class Branch:
         ]
 
         return resources
+

@@ -85,6 +85,7 @@ lambda_function = lambda_.Function(
     }),
     timeout=lambda_timeout,
     memory_size=lambda_memory,
+    publish=True,
     environment=lambda_.FunctionEnvironmentArgs(
         variables={
             "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
