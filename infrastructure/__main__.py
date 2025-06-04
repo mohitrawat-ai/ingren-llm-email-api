@@ -8,6 +8,8 @@ import json
 import os
 from pulumi_aws import lambda_, apigateway
 from branch import Branch
+import pulumi_command as command
+
 
 # Configuration
 config = pulumi.Config()
@@ -74,6 +76,35 @@ cloudwatch_policy_attachment = aws.iam.RolePolicyAttachment(
     policy_arn=cloudwatch_policy.arn,
 )
 
+
+def get_all_existing_versions(lambda_function_name):
+    """Get all existing alias versions before any deployment starts"""
+    versions = {}
+
+    for branch_name_version in branches.keys():  # Your branch list
+        cmd = command.local.Command(
+            f"get-existing-version-{branch_name_version}",
+            create=f"""
+            VERSION=$(aws lambda get-alias \
+              --function-name {lambda_function_name} \
+              --name {branch_name_version} \
+              --query 'FunctionVersion' \
+              --output text 2>/dev/null)
+
+            if [ "$?" -eq 0 ] && [ "$VERSION" != "None" ] && [ "$VERSION" != "" ]; then
+                echo "$VERSION"
+            else
+                echo "$LATEST"
+            fi
+            """
+        )
+        versions[branch_name_version] = cmd.stdout.apply(lambda v: v.strip())
+
+    return versions
+
+
+
+
 # Create an AWS Lambda function that runs our FastAPI application
 lambda_function = lambda_.Function(
     lambda_name,
@@ -100,6 +131,9 @@ lambda_function = lambda_.Function(
     ),
 )
 
+# Query existing versions BEFORE creating any Branch objects
+existing_versions = get_all_existing_versions(f"{project_name}-{stack_name}")
+
 # Create an API Gateway REST API
 rest_api = apigateway.RestApi(
     api_gateway_name,
@@ -125,7 +159,7 @@ api_resource = apigateway.Resource(
 deployment_resources = []
 # Create a branch for each environment
 for branch_name, version in branches.items():
-    branch = Branch(branch_name, lambda_function, version)
+    branch = Branch(branch_name, lambda_function, version, existing_versions[branch_name])
     alias = branch.create_alias(current_branch)
     resources = branch.create_api_gateway_resources(rest_api, api_resource.id, alias, lambda_function)
     deployment_resources.extend(resources)

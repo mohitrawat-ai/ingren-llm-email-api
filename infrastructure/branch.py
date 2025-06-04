@@ -4,42 +4,17 @@ import pulumi_command as command
 
 
 class Branch:
-    def __init__(self, name, lambda_function, version):
+    def __init__(self, name, lambda_function, version, current_lambda_version):
         self.name = name
         self.is_main_branch = name == "main"
         self.lambda_function = lambda_function
         self.version = version
-
-    @staticmethod
-    def get_alias_version_safe(function_name, alias_name, default="1"):
-        """Safely get alias version, return default if doesn't exist"""
-        cmd = command.local.Command(
-            f"get-alias-{alias_name}",
-            create=f"""
-            VERSION=$(aws lambda get-alias \
-              --function-name {function_name} \
-              --name {alias_name} \
-              --query 'FunctionVersion' \
-              --output text 2>/dev/null)
-
-            if [ "$?" -eq 0 ] && [ "$VERSION" != "None" ]; then
-                echo "$VERSION"
-            else
-                echo "{default}"
-            fi
-            """
-        )
-        return cmd.stdout.apply(lambda v: v.strip())
+        self.current_lambda_version = current_lambda_version
 
     def create_alias(self, current_branch):# For feature branches - always update alias to current $LATEST
-        alias_name = pulumi.Output.concat(self.lambda_function.id, "-", self.name, "-alias")
-        # Get current version using the function name (which is also an Output)
-        current_version = self.lambda_function.name.apply(
-            lambda fname: Branch.get_alias_version_safe(fname, self.name)
-        )
 
         # Use pulumi.Output conditional logic for version selection
-        function_version = pulumi.Output.all(current_version, self.lambda_function.version).apply(
+        function_version = pulumi.Output.all(self.current_lambda_version, self.lambda_function.version).apply(
             lambda args: args[1] if self.name == current_branch else args[0]
         )
         lambda_alias = lambda_.Alias(
