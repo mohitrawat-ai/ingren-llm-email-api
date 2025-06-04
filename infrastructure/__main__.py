@@ -7,6 +7,7 @@ import pulumi_aws as aws
 import json
 import os
 from pulumi_aws import lambda_, apigateway
+from branch import Branch
 
 # Configuration
 config = pulumi.Config()
@@ -17,6 +18,13 @@ api_gateway_name = f"{project_name}-api-{stack_name}"
 environment = config.get("environment") or stack_name
 lambda_memory = config.get_int("lambda_memory") or 1024
 lambda_timeout = config.get_int("lambda_timeout") or 30
+branches = {
+    "main": "v1",
+    "wip-prompt-v2": "v2",
+}
+current_branch = config.get("current_branch")
+if current_branch is None:
+    raise ValueError("Current branch is required")
 
 # Create an IAM role for the Lambda function
 lambda_role = aws.iam.Role(
@@ -77,6 +85,7 @@ lambda_function = lambda_.Function(
     }),
     timeout=lambda_timeout,
     memory_size=lambda_memory,
+    publish=True,
     environment=lambda_.FunctionEnvironmentArgs(
         variables={
             "OPENAI_API_KEY": os.environ.get("OPENAI_API_KEY", ""),
@@ -113,121 +122,21 @@ api_resource = apigateway.Resource(
     path_part="api",
 )
 
-# Create a v1 resource under api
-v1_resource = apigateway.Resource(
-    "v1-resource",
-    rest_api=rest_api.id,
-    parent_id=api_resource.id,
-    path_part="v1",
-)
+deployment_resources = []
+# Create a branch for each environment
+for branch_name, version in branches.items():
+    branch = Branch(branch_name, lambda_function, version)
+    alias = branch.create_alias(current_branch)
+    resources = branch.create_api_gateway_resources(rest_api, api_resource.id, alias, lambda_function)
+    deployment_resources.extend(resources)
 
-# Create only the generate-email resource
-generate_email_resource = apigateway.Resource(
-    "generate-email-resource",
-    rest_api=rest_api.id,
-    parent_id=v1_resource.id,
-    path_part="generate-email",
-)
-
-# Create the POST method for generate-email
-generate_email_method = apigateway.Method(
-    "generate-email-method",
-    rest_api=rest_api.id,
-    resource_id=generate_email_resource.id,
-    http_method="POST",
-    authorization="NONE",
-    api_key_required=True  # Require API key for this method
-)
-
-# Create integration between the API Gateway method and Lambda
-generate_email_integration = apigateway.Integration(
-    "generate-email-integration",
-    rest_api=rest_api.id,
-    resource_id=generate_email_resource.id,
-    http_method=generate_email_method.http_method,
-    integration_http_method="POST",
-    type="AWS_PROXY",
-    uri=lambda_function.invoke_arn,
-)
-
-# Set up CORS for the generate-email endpoint
-cors_options_method = apigateway.Method(
-    "generate-email-options",
-    rest_api=rest_api.id,
-    resource_id=generate_email_resource.id,
-    http_method="OPTIONS",
-    authorization="NONE",
-)
-
-cors_options_integration = apigateway.Integration(
-    "generate-email-options-integration",
-    rest_api=rest_api.id,
-    resource_id=generate_email_resource.id,
-    http_method=cors_options_method.http_method,
-    type="MOCK",
-    request_templates={
-        "application/json": '{"statusCode": 200}'
-    },
-)
-
-# Set up responses for OPTIONS method
-options_method_response = apigateway.MethodResponse(
-    "options-method-response",
-    rest_api=rest_api.id,
-    resource_id=generate_email_resource.id,
-    http_method="OPTIONS",
-    status_code="200",
-    response_models={
-        "application/json": "Empty",
-    },
-    response_parameters={
-        "method.response.header.Access-Control-Allow-Headers": True,
-        "method.response.header.Access-Control-Allow-Methods": True,
-        "method.response.header.Access-Control-Allow-Origin": True,
-    },
-)
-
-options_integration_response = apigateway.IntegrationResponse(
-    "options-integration-response",
-    rest_api=rest_api.id,
-    resource_id=generate_email_resource.id,
-    http_method="OPTIONS",
-    status_code="200",
-    response_parameters={
-        "method.response.header.Access-Control-Allow-Headers": "'Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token'",
-        "method.response.header.Access-Control-Allow-Methods": "'OPTIONS,POST'",
-        "method.response.header.Access-Control-Allow-Origin": "'*'",
-    },
-    selection_pattern="",
-    opts=pulumi.ResourceOptions(depends_on=[options_method_response]),
-
-)
-
-# Set up response for POST method
-post_method_response = apigateway.MethodResponse(
-    "post-method-response",
-    rest_api=rest_api.id,
-    resource_id=generate_email_resource.id,
-    http_method="POST",
-    status_code="200",
-    response_models={
-        "application/json": "Empty",
-    },
-    response_parameters={
-        "method.response.header.Access-Control-Allow-Origin": True,
-    },
-)
 
 # Create a deployment for the API
 deployment = apigateway.Deployment(
     "api-deployment",
     rest_api=rest_api.id,
     # Explicit dependencies to ensure resources are created before deployment
-    opts=pulumi.ResourceOptions(depends_on=[
-        generate_email_integration,
-        options_integration_response,
-        post_method_response,
-    ]),
+    opts=pulumi.ResourceOptions(depends_on=deployment_resources),
 )
 
 # Create a stage for the deployment
@@ -266,17 +175,6 @@ usage_plan_key = apigateway.UsagePlanKey(
     key_id=api_key.id,
     key_type="API_KEY",
     usage_plan_id=usage_plan.id,
-)
-
-# Grant API Gateway permission to invoke Lambda
-lambda_permission = aws.lambda_.Permission(
-    "api-gateway-lambda-permission",
-    action="lambda:InvokeFunction",
-    function=lambda_function.name,
-    principal="apigateway.amazonaws.com",
-    source_arn=pulumi.Output.concat(
-        rest_api.execution_arn, "/*/*"
-    ),
 )
 
 # Export relevant URLs and the API key
