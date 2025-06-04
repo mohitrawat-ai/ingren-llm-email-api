@@ -9,6 +9,8 @@ import os
 from pulumi_aws import lambda_, apigateway
 from branch import Branch
 import pulumi_command as command
+import time
+import hashlib
 
 
 # Configuration
@@ -172,12 +174,29 @@ for branch_name, version in branches.items():
     deployment_resources.extend(resources)
 
 
-# Create a deployment for the API
+# Create a deployment trigger that changes when Lambda function changes
+deployment_trigger = pulumi.Output.all(
+    lambda_function.version,
+    lambda_function.source_code_hash
+).apply(lambda args: hashlib.md5(f"{args[0]}-{args[1]}-{time.time()}".encode()).hexdigest()[:8])
+
+# Create a deployment for the API that includes ALL resources
 deployment = apigateway.Deployment(
     "api-deployment",
     rest_api=rest_api.id,
-    # Explicit dependencies to ensure resources are created before deployment
-    opts=pulumi.ResourceOptions(depends_on=deployment_resources),
+    # Force new deployment when Lambda changes
+    description=pulumi.Output.concat(
+        "Deployment for Lambda version: ",
+        lambda_function.version,
+        " trigger: ",
+        deployment_trigger
+    ),
+    # Ensure ALL resources from ALL branches are created before deployment
+    opts=pulumi.ResourceOptions(
+        depends_on=deployment_resources + [lambda_function],
+        # Replace deployment when description changes (i.e., when Lambda changes)
+        replace_on_changes=["description"]
+    ),
 )
 
 # Create a stage for the deployment
@@ -186,6 +205,12 @@ stage = apigateway.Stage(
     rest_api=rest_api.id,
     deployment=deployment.id,
     stage_name=stack_name,
+    # Stage variables that get updated when aliases change
+    variables={
+        "lambdaAlias": lambda_function.version,
+        "environment": stack_name,
+        "deploymentTrigger": deployment_trigger,  # Add this to force stage updates
+    },
 )
 
 # Create a usage plan
