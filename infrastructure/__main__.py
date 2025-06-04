@@ -77,30 +77,33 @@ cloudwatch_policy_attachment = aws.iam.RolePolicyAttachment(
 )
 
 
-def get_all_existing_versions(lambda_function_name):
-    """Get all existing alias versions before any deployment starts"""
-    versions = {}
+# The "proper" Pulumi way - work with Outputs throughout
+def get_existing_versions_as_outputs(function_name_output, version_branches):
+    """Return version queries as Outputs (stay in Pulumi world)"""
 
-    for branch_name_version in branches.keys():  # Your branch list
-        cmd = command.local.Command(
-            f"get-existing-version-{branch_name_version}",
-            create=f"""
-            VERSION=$(aws lambda get-alias \
-              --function-name {lambda_function_name} \
-              --name {branch_name_version} \
-              --query 'FunctionVersion' \
-              --output text 2>/dev/null)
+    def create_version_queries(function_name):
+        versions = {}
+        for branch_name_version in version_branches:
+            cmd = command.local.Command(
+                f"get-version-{branch_name_version}",
+                create=f"""
+                VERSION=$(aws lambda get-alias \
+                  --function-name {function_name} \
+                  --name {branch_name_version} \
+                  --query 'FunctionVersion' \
+                  --output text 2>/dev/null)
 
-            if [ "$?" -eq 0 ] && [ "$VERSION" != "None" ] && [ "$VERSION" != "" ]; then
-                echo "$VERSION"
-            else
-                echo "$LATEST"
-            fi
-            """
-        )
-        versions[branch_name_version] = cmd.stdout.apply(lambda v: v.strip())
+                if [ "$?" -eq 0 ] && [ "$VERSION" != "None" ] && [ "$VERSION" != "" ]; then
+                    echo "$VERSION"
+                else
+                    echo "$LATEST"
+                fi
+                """
+            )
+            versions[branch_name_version] = cmd.stdout.apply(lambda v: v.strip())
+        return versions
 
-    return versions
+    return function_name_output.apply(create_version_queries)
 
 
 
@@ -132,7 +135,13 @@ lambda_function = lambda_.Function(
 )
 
 # Query existing versions BEFORE creating any Branch objects
-existing_versions = get_all_existing_versions(f"{project_name}-{stack_name}")
+# Usage
+existing_versions_output = get_existing_versions_as_outputs(lambda_function.name, branches.keys())
+
+for branch_name, version in existing_versions_output.items():
+    pulumi.export(f"raw_version_{branch_name}", version)
+
+pulumi.log.info(f"Existing versions: {existing_versions_output}")
 
 # Create an API Gateway REST API
 rest_api = apigateway.RestApi(
@@ -159,7 +168,7 @@ api_resource = apigateway.Resource(
 deployment_resources = []
 # Create a branch for each environment
 for branch_name, version in branches.items():
-    branch = Branch(branch_name, lambda_function, version, existing_versions[branch_name])
+    branch = Branch(branch_name, lambda_function, version, existing_versions_output[branch_name])
     alias = branch.create_alias(current_branch)
     resources = branch.create_api_gateway_resources(rest_api, api_resource.id, alias, lambda_function)
     deployment_resources.extend(resources)
