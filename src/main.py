@@ -27,7 +27,7 @@ def create_app() -> FastAPI:
     )
 
     # Include API routes
-    app.include_router(router, prefix="/api/v1")
+    app.include_router(router, prefix="/api/v2")
 
     return app
 
