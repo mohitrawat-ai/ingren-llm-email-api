@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     LANGSMITH_TRACING: str = "true"
     LANGSMITH_SYSTEM_PROMPT_ID: Optional[str] = "ingren_email_system"
     LANGSMITH_USER_PROMPT_ID: Optional[str] = "ingren_email_user"
+    LANGSMITH_USER_FOLLOWUP_PROMPT_ID: Optional[str] = "ingren_email_followup"
 
     # Server settings
     HOST: str = "0.0.0.0"

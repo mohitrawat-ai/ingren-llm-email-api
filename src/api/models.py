@@ -6,6 +6,11 @@ class HealthResponse(BaseModel):
     status: str = "healthy"
     version: str
 
+class EmailMetadata(BaseModel):
+    theme: Optional[str] = Field(description="The outbound theme used for the email", default=None)
+    email_history: Optional[str] = Field(default=None, description="The history of emails to the prospect")
+    step_number: int = Field(default=1, description="The current step number in the email sequence")
+
 
 class ProspectData(BaseModel):
     first_name: str = Field(..., description="Prospect's first name")
@@ -68,6 +73,16 @@ class EmailRequest(BaseModel):
         description="Sender Email name to be used in signature"
     )
 
+    metadata: Optional[EmailMetadata] = Field(
+        default=None,
+        description="Email metadata"
+    )
+
+    sample_email: Optional[str] = Field(
+        default=None,
+        description="Sample email to be used as the basis for the response"
+    )
+
     model_config = {
         "json_schema_extra": {
             "examples": [
@@ -96,7 +111,11 @@ class EmailRequest(BaseModel):
                         "calendar_link": "calendly.com/ingren/demo"
                     },
                     "email_tone": "professional",
-                    "sender_name": "John Doe"
+                    "sender_name": "John Doe",
+                    "metadata": {
+                        "email_history": "Email history",
+                        "step_number": 1
+                    }
                 }
             ]
         }

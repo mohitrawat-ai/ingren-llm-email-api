@@ -45,16 +45,22 @@ class EmailGenerator:
             prompts = self.prompt_manager.render_prompt(
                 request_data,
                 user_prompt_id=settings.LANGSMITH_USER_PROMPT_ID,
-                system_prompt_id=settings.LANGSMITH_SYSTEM_PROMPT_ID
+                system_prompt_id=settings.LANGSMITH_SYSTEM_PROMPT_ID,
+                user_prompt_followup_id=settings.LANGSMITH_USER_FOLLOWUP_PROMPT_ID
             )
+
+            messages = [
+                {"role": "system", "content": prompts["system_prompt"]},
+                {"role": "user", "content": prompts["user_prompt"]}
+            ]
+
+            if "user_followup_prompt" in prompts:
+                messages.append({"role": "user", "content": prompts["user_followup_prompt"]})
 
             # Call OpenAI API
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": prompts["system_prompt"]},
-                    {"role": "user", "content": prompts["user_prompt"]}
-                ],
+                messages=messages,
                 store=True,
                 temperature=0.7,
                 max_tokens=1500,

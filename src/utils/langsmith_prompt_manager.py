@@ -1,13 +1,8 @@
 # src/utils/langsmith_prompt_manager.py
-import os
 from typing import Dict, Any, Optional
 from langsmith import Client
-import json
-from string import Template
 
 from langsmith.client import convert_prompt_to_openai_format
-
-from src.config import settings
 
 
 class LangsmithPromptManager:
@@ -18,7 +13,7 @@ class LangsmithPromptManager:
     _instance = None
     _client = None
     _system_prompt = None
-    _user_prompt_template = None
+    _user_prompt_templates = {}
 
     def __new__(cls):
         if cls._instance is None:
@@ -77,19 +72,16 @@ class LangsmithPromptManager:
             A string.Template object for rendering the user prompt
         """
         # Return cached version or try to load from environment
-        if cls._user_prompt_template:
-            return cls._user_prompt_template
+        if prompt_id in cls._user_prompt_templates:
+            return cls._user_prompt_templates[prompt_id]
 
         if prompt_id:
             try:
                 prompt = cls._client.pull_prompt(prompt_id, include_model=False)
-                cls._user_prompt_template = prompt
-                return cls._user_prompt_template
+                cls._user_prompt_templates[prompt_id] = prompt
+                return prompt
             except Exception as e:
                 print(f"Error loading user prompt template from LangSmith: {str(e)}")
-                # Fall back to cached version if available
-                if cls._user_prompt_template:
-                    return cls._user_prompt_template
                 return "Write a personalized email"
 
         # Default fallback
@@ -98,7 +90,8 @@ class LangsmithPromptManager:
     @classmethod
     def render_prompt(cls, request_data: Dict[str, Any],
                       user_prompt_id: Optional[str] = None,
-                      system_prompt_id: Optional[str] = None) -> Dict[str, str]:
+                      system_prompt_id: Optional[str] = None,
+                      user_prompt_followup_id: Optional[str] = None) -> Dict[str, str]:
         """
         Render both system and user prompts using the request data
 
@@ -106,6 +99,7 @@ class LangsmithPromptManager:
             request_data: Email request data containing prospect, company, etc.
             user_prompt_id: Optional ID of the user prompt in LangSmith
             system_prompt_id: Optional ID of the system prompt in LangSmith
+            user_prompt_followup_id: Optional ID of the follow-up user prompt in LangSmith
 
         Returns:
             Dictionary with rendered 'system_prompt' and 'user_prompt'
@@ -149,13 +143,30 @@ class LangsmithPromptManager:
         template_data["sender_name"] = request_data.get("sender_name", "Ingren AI")
         template_data["email_tone"] = request_data.get("email_tone", "professional")
 
+        # Add sample email (if provided)
+        if "sample_email" in request_data:
+            template_data["sample_email"] = request_data["sample_email"]
+
+        # Add metadata (ensure it's not None)
+        metadata = request_data.get("metadata", {}) or {}
+        for key, value in metadata.items():
+            template_data[f"{key}"] = str(value) if value is not None else ""
+
         user_prompt_invoked = user_prompt_template.invoke(template_data)
 
         openai_payload = convert_prompt_to_openai_format(user_prompt_invoked)
         user_prompt = openai_payload["messages"][0]["content"]
 
-
-        return {
+        response = {
             "system_prompt": system_prompt,
             "user_prompt": user_prompt
         }
+
+        if request_data.get("metadata").get("step_number", 1) > 1:
+            followup_prompt_template = cls.get_user_prompt_template(user_prompt_followup_id)
+            followup_prompt_invoked = followup_prompt_template.invoke(request_data.get("metadata"))
+            openai_payload = convert_prompt_to_openai_format(followup_prompt_invoked)
+            followup_prompt = openai_payload["messages"][0]["content"]
+            response["user_followup_prompt"] = followup_prompt
+
+        return response
