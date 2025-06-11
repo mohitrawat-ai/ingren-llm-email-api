@@ -10,7 +10,7 @@ from src.api.models import HealthResponse
 from src.services.email_generator import EmailGenerator
 from src.config import settings
 
-from ingren_api_types import EmailGenerationRequest, EmailGenerationResponse, Personalization, Attributes, GeneratedEmail
+from src.api.models import EmailGenerationRequest, EmailGenerationResponse, Personalization, Attributes, GeneratedEmail
 
 router = APIRouter()
 email_generator = EmailGenerator()
@@ -39,34 +39,6 @@ async def deep_health_check():
 
 
 # Add to src/api/routes.py
-
-from src.api.models import CompanyURLRequest, CompanyDescriptionResponse
-from src.services.company_info_service import CompanyInfoService
-
-# Initialize the company info service
-company_info_service = CompanyInfoService()
-
-@router.post("/company-description", response_model=CompanyDescriptionResponse, tags=["Company"])
-async def get_company_description(request: CompanyURLRequest):
-    """
-    Get company description and information based on the company URL
-    """
-    try:
-        # Call the company info service to get the description
-        company_data = await company_info_service.get_company_description(request.company_url)
-
-        # Return the data as a CompanyDescriptionResponse
-        return CompanyDescriptionResponse(
-            company_name=company_data.get("company_name", "Unknown"),
-            description=company_data.get("description", "No description available."),
-            industry=company_data.get("industry"),
-            employee_count=company_data.get("employee_count"),
-            headquarters=company_data.get("headquarters"),
-            founded_year=company_data.get("founded_year"),
-            products_services=company_data.get("products_services")
-        )
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Company information retrieval failed: {str(e)}")
 
 # Other routes...
 @router.post("/generate-email", response_model=EmailGenerationResponse, tags=["Email Generation"])

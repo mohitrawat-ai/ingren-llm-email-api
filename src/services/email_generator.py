@@ -2,13 +2,13 @@
 import json
 from typing import Dict, Any
 
-from ingren_api_types import EmailGenerationRequest
 from langsmith import traceable
 from langsmith.wrappers import wrap_openai
 from openai import OpenAI
 
 from src.config import settings
 from src.utils.langsmith_prompt_manager import LangsmithPromptManager
+from src.api.models import EmailGenerationRequest
 
 
 class EmailGenerator:
@@ -37,23 +37,31 @@ class EmailGenerator:
                 "company": request.company.model_dump() if request.company else {},
                 "employment": request.employment.model_dump() if request.employment else {},
                 "campaign": request.campaign.model_dump() if request.campaign else {},
-                "context": request.context.model_dump() if request.context else {}
+                "context": request.context.model_dump() if request.context else {},
+                "metadata": request.metadata.model_dump() if request.metadata else {},
+                "sample_email": request.sample_email
             }
 
             # Render both prompts using the LangsmithPromptManager
             prompts = self.prompt_manager.render_prompt(
                 request_data,
                 user_prompt_id=settings.LANGSMITH_USER_PROMPT_ID,
-                system_prompt_id=settings.LANGSMITH_SYSTEM_PROMPT_ID
+                system_prompt_id=settings.LANGSMITH_SYSTEM_PROMPT_ID,
+                user_prompt_followup_id=settings.LANGSMITH_USER_FOLLOWUP_PROMPT_ID
             )
+
+            messages = [
+                {"role": "system", "content": prompts["system_prompt"]},
+                {"role": "user", "content": prompts["user_prompt"]}
+            ]
+
+            if "user_followup_prompt" in prompts:
+                messages.append({"role": "user", "content": prompts["user_followup_prompt"]})
 
             # Call OpenAI API
             response = self.client.chat.completions.create(
                 model=self.model,
-                messages=[
-                    {"role": "system", "content": prompts["system_prompt"]},
-                    {"role": "user", "content": prompts["user_prompt"]}
-                ],
+                messages=messages,
                 store=True,
                 temperature=0.7,
                 max_tokens=1500,

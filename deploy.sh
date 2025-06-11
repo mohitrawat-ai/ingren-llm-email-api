@@ -31,8 +31,8 @@ if ! aws sts get-caller-identity &> /dev/null; then
 fi
 
 # Check if Poetry is installed
-if ! command -v poetry &> /dev/null; then
-    echo -e "${RED}Error: Poetry is not installed.${NC}"
+if ! command -v uv &> /dev/null; then
+    echo -e "${RED}Error: uv is not installed.${NC}"
     echo "Please install Poetry first: https://python-poetry.org/docs/#installation"
     exit 1
 fi
@@ -67,9 +67,9 @@ echo -e "${GREEN}Running Pulumi deployment...${NC}"
 # Install Pulumi plugin and dependencies
 echo -e "${GREEN}Installing Pulumi dependencies...${NC}"
 
-# Run Pulumi up with Poetry's Python
+# Run Pulumi up with uv's Python
 echo -e "${GREEN}Deploying to AWS...${NC}"
-poetry run pulumi up -C infrastructure
+uv run pulumi up -C infrastructure
 
 # Get the API endpoint and API key from Pulumi outputs
 API_ENDPOINT=$(pulumi stack output generate_email_endpoint)

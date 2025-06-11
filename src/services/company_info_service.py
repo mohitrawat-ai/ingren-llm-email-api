@@ -6,7 +6,6 @@ from langsmith import traceable
 from openai import OpenAI
 from openai.types.chat import ChatCompletionMessageParam
 
-from src.api.models import CompanyDescriptionResponse
 from src.config import settings
 
 

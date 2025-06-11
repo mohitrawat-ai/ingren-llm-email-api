@@ -9,4 +9,3 @@ boto3==1.38.13
 langsmith==0.3.25
 langchain-core==0.3.59
 langchain-openai==0.3.16
-ingren_api_types @ git+https://github.com/mohitrawat-ai/ingren-api-spec.git@v1.0.1#subdirectory=packages/python/ingren_api_types
